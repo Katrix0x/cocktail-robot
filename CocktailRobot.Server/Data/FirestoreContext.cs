@@ -10,19 +10,20 @@ public class FirestoreContext
     public FirestoreContext(IConfiguration configuration)
     {
         var projectId = configuration["Firestore:ProjectId"];
-
         if (string.IsNullOrWhiteSpace(projectId))
             throw new InvalidOperationException("Firestore ProjectId is missing.");
 
-        // Читаем JSON-ключ из переменной окружения (Render / локально)
-        var json = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS_JSON");
-        if (string.IsNullOrWhiteSpace(json))
-            throw new Exception("Firebase credentials not found in environment variables.");
+        var credentialPath = configuration["Firestore:CredentialPath"];
+        if (string.IsNullOrWhiteSpace(credentialPath))
+            throw new Exception("Firestore credential path is missing.");
 
-        // Создаём FirestoreClient напрямую из JSON-ключа
+        var fullPath = Path.Combine(AppContext.BaseDirectory, credentialPath);
+        if (!File.Exists(fullPath))
+            throw new Exception($"Firebase key file not found: {fullPath}");
+
         var client = new FirestoreClientBuilder
         {
-            JsonCredentials = json
+            CredentialsPath = fullPath
         }.Build();
 
         Db = FirestoreDb.Create(projectId, client);
