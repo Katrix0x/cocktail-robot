@@ -1,0 +1,66 @@
+﻿@page "/"
+
+@using Microsoft.JSInterop
+
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h1 style="font-size: 22px; margin-bottom: 8px;">Робот-бармен</h1>
+<p style="font-size: 14px; color: #ccc; margin-bottom: 24px;">
+    Привет! Выберите свою роль, чтобы продолжить.
+</p>
+
+<button class="btn-primary" @onclick="EnterAsGuest">
+    Я — гость
+</button>
+
+<button class="btn-secondary" @onclick="EnterAsOrganizer">
+    Я — организатор
+</button>
+
+@code {
+    private async Task EnterAsGuest()
+    {
+        // Генерируем забавное имя и сохраняем в localStorage
+        var name = GenerateFunnyName();
+        await JS.InvokeVoidAsync("localStorage.setItem", "userName", name);
+        await JS.InvokeVoidAsync("localStorage.setItem", "isOrganizer", "false");
+
+        Navigation.NavigateTo("/main");
+    }
+
+    private async Task EnterAsOrganizer()
+    {
+        // Простая авторизация по паролю "party123"
+        var password = await JS.InvokeAsync<string>("prompt", "Введите пароль организатора:");
+        if (password == "party123")
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "userName", "Организатор");
+            await JS.InvokeVoidAsync("localStorage.setItem", "isOrganizer", "true");
+            Navigation.NavigateTo("/main");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Неверный пароль.");
+        }
+    }
+
+    private string GenerateFunnyName()
+    {
+        var adjectives = new[]
+        {
+            "Весёлый", "Шумный", "Искристый", "Пенный", "Солнечный", "Танцующий", "Загадочный"
+        };
+
+        var nouns = new[]
+        {
+            "Лимон", "Шейкер", "Коктейль", "Бокал", "Кубик льда", "Бармен", "Ананас"
+        };
+
+        var rnd = new Random();
+        var adj = adjectives[rnd.Next(adjectives.Length)];
+        var noun = nouns[rnd.Next(nouns.Length)];
+
+        return $"{adj} {noun}";
+    }
+}

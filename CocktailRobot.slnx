@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CocktailRobot.Client/CocktailRobot.Client.csproj" />
+  <Project Path="CocktailRobot.Server/CocktailRobot.Server.csproj" />
+  <Project Path="CocktailRobot.Shared/CocktailRobot.Shared.csproj" />
+</Solution>

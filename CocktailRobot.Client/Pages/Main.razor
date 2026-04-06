@@ -1,0 +1,308 @@
+﻿@page "/main"
+
+@using CocktailRobot.Shared.Models
+@using CocktailRobot.Client.Services
+@inject ApiClient Api
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<h2 style="font-size: 18px; margin-bottom: 8px;">Меню и очередь</h2>
+
+<p style="font-size: 13px; color: #aaa; margin-bottom: 16px;">
+    Вы вошли как @(_isOrganizer ? "организатор" : "гость") — @(_userName).
+</p>
+
+@if (_isLoading)
+{
+    <p>Загрузка...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Напитки</div>
+        </div>
+
+        @foreach (var drink in _drinks.Where(d => d.IsStandalone))
+        {
+            <div class="card" style="margin-top: 6px;">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">@drink.Name</div>
+                        <div class="card-subtitle">Позиция: @drink.Position</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center;">
+                        @if (!string.IsNullOrWhiteSpace(drink.Description))
+                        {
+                            <span class="toggle-icon" @onclick="@(() => ToggleDrinkDescription(drink.Id))">
+                                @(_expandedDrinkId == drink.Id ? "▲" : "▼")
+                            </span>
+                        }
+
+                        @if (_isOrganizer)
+                        {
+                            <button class="icon-button" title="Редактировать" @onclick="@(() => EditDrink(drink))">
+                                ✏️
+                            </button>
+                        }
+
+                        <button class="icon-button" title="Заказать" @onclick="@(() => OrderSingleDrink(drink))">
+                            🥤
+                        </button>
+                    </div>
+                </div>
+
+                @if (_expandedDrinkId == drink.Id && !string.IsNullOrWhiteSpace(drink.Description))
+                {
+                    <div style="margin-top: 6px; font-size: 13px; color: #ddd;">
+                        @drink.Description
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Рецепты</div>
+        </div>
+
+        @foreach (var recipe in _recipes)
+        {
+            <div class="card" style="margin-top: 6px;">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">@recipe.Name</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center;">
+                        @if (!string.IsNullOrWhiteSpace(recipe.Description))
+                        {
+                            <span class="toggle-icon" @onclick="@(() => ToggleRecipeDescription(recipe.Id))">
+                                @(_expandedRecipeId == recipe.Id ? "▲" : "▼")
+                            </span>
+                        }
+
+                        <button class="icon-button" title="Заказать" @onclick="@(() => OrderRecipe(recipe))">
+                            🍹
+                        </button>
+                    </div>
+                </div>
+
+                @if (_expandedRecipeId == recipe.Id && !string.IsNullOrWhiteSpace(recipe.Description))
+                {
+                    <div style="margin-top: 6px; font-size: 13px; color: #ddd;">
+                        @recipe.Description
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Очередь</div>
+        </div>
+
+        @foreach (var order in _queue)
+        {
+            <div class="card" style="margin-top: 6px;">
+                <div class="queue-item">
+                    <div><strong>Имя:</strong> @order.DisplayName (@(order.IsOrganizer ? "организатор" : "гость"))</div>
+                    <div>
+                        <strong>Заказ:</strong>
+                        @foreach (var item in order.Items)
+                        {
+                            <span>
+                                @GetOrderItemName(item)
+                            </span>
+                        }
+                    </div>
+                    <div>
+                        <strong>Статус:</strong> @GetStatusText(order.Status)
+                    </div>
+
+                    @if (_isOrganizer)
+                    {
+                        <div style="margin-top: 4px;">
+                            @if (order.Status == OrderStatus.InQueue)
+                            {
+                                <button class="btn-secondary" style="padding:6px 8px; font-size:12px;"
+                                        @onclick="@(() => SetOrderStatus(order, OrderStatus.InProgress))">
+                                    Отметить как «готовится»
+                                </button>
+                            }
+                            else if (order.Status == OrderStatus.InProgress)
+                            {
+                                <button class="btn-secondary" style="padding:6px 8px; font-size:12px;"
+                                        @onclick="@(() => SetOrderStatus(order, OrderStatus.Done))">
+                                    Отметить как «готов»
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isOrganizer;
+    private string _userName = "";
+
+    private List<DrinkDto> _drinks = new();
+    private List<RecipeDto> _recipes = new();
+    private List<OrderDto> _queue = new();
+
+    private string? _expandedDrinkId;
+    private string? _expandedRecipeId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userName = await JS.InvokeAsync<string>("localStorage.getItem", "userName") ?? "Гость";
+        var isOrgStr = await JS.InvokeAsync<string>("localStorage.getItem", "isOrganizer") ?? "false";
+        _isOrganizer = bool.TryParse(isOrgStr, out var b) && b;
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+
+        _drinks = await Api.GetDrinksAsync() ?? new List<DrinkDto>();
+        _recipes = await Api.GetRecipesAsync() ?? new List<RecipeDto>();
+        _queue = await Api.GetQueueAsync() ?? new List<OrderDto>();
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private void ToggleDrinkDescription(string id)
+    {
+        _expandedDrinkId = _expandedDrinkId == id ? null : id;
+    }
+
+    private void ToggleRecipeDescription(string id)
+    {
+        _expandedRecipeId = _expandedRecipeId == id ? null : id;
+    }
+
+    private async Task OrderSingleDrink(DrinkDto drink)
+    {
+        var order = new OrderDto
+        {
+            DisplayName = _userName,
+            IsOrganizer = _isOrganizer,
+            Items = new List<OrderItemDto>
+            {
+                new OrderItemDto
+                {
+                    Type = OrderItemType.Drink,
+                    ReferenceId = drink.Id
+                }
+            },
+            Status = OrderStatus.InQueue,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var id = await Api.CreateOrderAsync(order);
+        if (id == null)
+        {
+            await JS.InvokeVoidAsync("alert", "Не удалось создать заказ.");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task OrderRecipe(RecipeDto recipe)
+    {
+        var order = new OrderDto
+        {
+            DisplayName = _userName,
+            IsOrganizer = _isOrganizer,
+            Items = new List<OrderItemDto>
+            {
+                new OrderItemDto
+                {
+                    Type = OrderItemType.Recipe,
+                    ReferenceId = recipe.Id
+                }
+            },
+            Status = OrderStatus.InQueue,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var id = await Api.CreateOrderAsync(order);
+        if (id == null)
+        {
+            await JS.InvokeVoidAsync("alert", "Не удалось создать заказ.");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private string GetStatusText(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.InQueue => "в очереди",
+            OrderStatus.InProgress => "готовится",
+            OrderStatus.Done => "готов",
+            _ => "неизвестно"
+        };
+    }
+
+    private string GetOrderItemName(OrderItemDto item)
+    {
+        if (item.Type == OrderItemType.Drink)
+        {
+            var drink = _drinks.FirstOrDefault(d => d.Id == item.ReferenceId);
+            return drink?.Name ?? "Напиток";
+        }
+        else
+        {
+            var recipe = _recipes.FirstOrDefault(r => r.Id == item.ReferenceId);
+            return recipe?.Name ?? "Рецепт";
+        }
+    }
+
+    private async Task SetOrderStatus(OrderDto order, OrderStatus status)
+    {
+        var ok = await Api.UpdateOrderStatusAsync(order.Id, status);
+        if (!ok)
+        {
+            await JS.InvokeVoidAsync("alert", "Не удалось обновить статус.");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task EditDrink(DrinkDto drink)
+    {
+        if (!_isOrganizer) return;
+
+        var newName = await JS.InvokeAsync<string>("prompt", $"Новое название для «{drink.Name}»:", drink.Name);
+        if (string.IsNullOrWhiteSpace(newName)) return;
+
+        var newPositionStr = await JS.InvokeAsync<string>("prompt", $"Новая позиция для «{newName}»:", drink.Position.ToString());
+        if (!int.TryParse(newPositionStr, out var newPosition)) return;
+
+        drink.Name = newName;
+        drink.Position = newPosition;
+
+        var ok = await Api.UpdateDrinkAsync(drink);
+        if (!ok)
+        {
+            await JS.InvokeVoidAsync("alert", "Не удалось обновить напиток.");
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+}
