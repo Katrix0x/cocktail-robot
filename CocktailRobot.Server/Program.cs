@@ -4,18 +4,18 @@ using CocktailRobot.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем FirestoreContext
+// Firestore
 builder.Services.AddSingleton<FirestoreContext>();
 
-// Репозитории
+// Repositories
 builder.Services.AddScoped<IDrinkRepository, FirestoreDrinkRepository>();
 builder.Services.AddScoped<IRecipeRepository, FirestoreRecipeRepository>();
 builder.Services.AddScoped<IOrderRepository, FirestoreOrderRepository>();
 
-// Контроллеры
+// Controllers
 builder.Services.AddControllers();
 
-// CORS — чтобы клиент с другого домена мог обращаться
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -30,6 +30,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors();
+
+app.UseRouting(); // ← ЭТО ОБЯЗАТЕЛЬНО
 
 app.MapControllers();
 
