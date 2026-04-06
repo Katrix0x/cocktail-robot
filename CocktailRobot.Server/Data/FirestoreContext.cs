@@ -1,4 +1,5 @@
 ﻿using Google.Cloud.Firestore;
+using Google.Cloud.Firestore.V1;
 
 namespace CocktailRobot.Server.Data;
 
@@ -8,16 +9,22 @@ public class FirestoreContext
 
     public FirestoreContext(IConfiguration configuration)
     {
-        // Читаем настройки из appsettings.json
         var projectId = configuration["Firestore:ProjectId"];
-        var credentialPath = configuration["Firestore:CredentialPath"];
 
-        if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(credentialPath))
+        if (string.IsNullOrWhiteSpace(projectId))
+            throw new InvalidOperationException("Firestore ProjectId is missing.");
+
+        // Читаем JSON-ключ из переменной окружения (Render / локально)
+        var json = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS_JSON");
+        if (string.IsNullOrWhiteSpace(json))
+            throw new Exception("Firebase credentials not found in environment variables.");
+
+        // Создаём FirestoreClient напрямую из JSON-ключа
+        var client = new FirestoreClientBuilder
         {
-            throw new InvalidOperationException("Firestore configuration is missing.");
-        }
+            JsonCredentials = json
+        }.Build();
 
-        Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialPath);
-        Db = FirestoreDb.Create(projectId);
+        Db = FirestoreDb.Create(projectId, client);
     }
 }
