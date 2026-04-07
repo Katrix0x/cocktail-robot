@@ -15,41 +15,24 @@ builder.Services.AddScoped<IOrderRepository, FirestoreOrderRepository>();
 // Controllers
 builder.Services.AddControllers();
 
-// CORS
+// CORS — единственная правильная политика
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowClient", policy =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
-
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("https://cocktail-robot-client.onrender.com")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-
 var app = builder.Build();
 
 app.UseHttpsRedirection();
 
-app.UseCors();
+// Включаем CORS ДО контроллеров
+app.UseCors("AllowClient");
 
 app.MapControllers();
 
 app.Run();
-
-//app.UseBlazorFrameworkFiles();
-
-//app.UseStaticFiles();
-
-//app.MapFallbackToFile("index.html");
