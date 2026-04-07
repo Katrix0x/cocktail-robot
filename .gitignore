@@ -4,3 +4,4 @@ obj/
 publish-client/
 publish-server/
 *.json
+!build-client/wwwroot/_framework/blazor.boot.json
