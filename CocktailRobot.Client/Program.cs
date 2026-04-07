@@ -7,7 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 
 // Базовый адрес API — пока для разработки localhost:5000
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:5001";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://cocktail-robot.onrender.com";
 
 builder.Services.AddScoped(sp => new HttpClient
 {

@@ -8,6 +8,10 @@ RUN dotnet publish CocktailRobot.Server/CocktailRobot.Server.csproj -c Release -
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
+
+# ⬇️ ВОТ ЭТА СТРОКА — ГЛАВНОЕ
+COPY CocktailRobot.Server/firebase-key.json /app/firebase-key.json
+
 COPY --from=build /app .
 
 ENV ASPNETCORE_URLS=http://+:8080
