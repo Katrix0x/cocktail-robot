@@ -48,3 +48,8 @@ app.MapControllers();
 
 app.Run();
 
+//app.UseBlazorFrameworkFiles();
+
+//app.UseStaticFiles();
+
+//app.MapFallbackToFile("index.html");
