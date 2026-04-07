@@ -27,12 +27,24 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
 var app = builder.Build();
 
-app.UseCors();
+app.UseHttpsRedirection();
 
-app.UseRouting(); // ← ЭТО ОБЯЗАТЕЛЬНО
+app.UseCors();
 
 app.MapControllers();
 
 app.Run();
+

@@ -1,4 +1,4 @@
-@CocktailRobot.Server_HostAddress = http://localhost:5295
+@CocktailRobot.Server_HostAddress = https://cocktail-robot.onrender.com
 
 GET {{CocktailRobot.Server_HostAddress}}/weatherforecast/
 Accept: application/json
