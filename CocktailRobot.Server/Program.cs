@@ -1,6 +1,5 @@
 using CocktailRobot.Server.Data;
 using CocktailRobot.Server.Repositories;
-using CocktailRobot.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,12 +14,12 @@ builder.Services.AddScoped<IOrderRepository, FirestoreOrderRepository>();
 // Controllers
 builder.Services.AddControllers();
 
-// CORS
+// ✅ CORS (открытый)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowClient", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("https://cocktail-robot-client.onrender.com")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -28,7 +27,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors("AllowClient");
+app.UseCors("AllowAll");
 
 app.MapGet("/", () => "CocktailRobot API is running 🚀");
 
