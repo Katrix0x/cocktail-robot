@@ -28,14 +28,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ❗ НЕ используем HTTPS редирект на Render
-// app.UseHttpsRedirection();
-
 app.UseCors("AllowClient");
+
+app.MapGet("/", () => "CocktailRobot API is running 🚀");
 
 app.MapControllers();
 
-// ✅ правильный порт для Render
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Urls.Add($"http://*:{port}");
 
