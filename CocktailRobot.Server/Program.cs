@@ -15,7 +15,7 @@ builder.Services.AddScoped<IOrderRepository, FirestoreOrderRepository>();
 // Controllers
 builder.Services.AddControllers();
 
-// CORS — единственная правильная политика
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
@@ -28,11 +28,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+// ❗ НЕ используем HTTPS редирект на Render
+// app.UseHttpsRedirection();
 
-// Включаем CORS ДО контроллеров
 app.UseCors("AllowClient");
 
 app.MapControllers();
+
+// ✅ правильный порт для Render
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Add($"http://*:{port}");
 
 app.Run();
